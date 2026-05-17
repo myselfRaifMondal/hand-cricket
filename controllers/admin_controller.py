@@ -29,6 +29,8 @@ class AdminController(QObject):
         bowling_first_team_id: int = 2,
     ) -> None:
         try:
+            # Use temporary team_ids 1/2 for the in-memory engine; DB mapping is
+            # handled inside ScoringService using team names.
             state = self.match_controller.service.create_match(
                 MatchConfig(
                     home_team=TeamConfig(team_id=1, name=home_team_name),

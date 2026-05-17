@@ -18,6 +18,9 @@ class AnalyticsBundle:
     over_summary: pd.DataFrame
     innings_summary: pd.DataFrame
     win_probability: float
+    worm_data: pd.DataFrame
+    manhattan_data: pd.DataFrame
+    run_rate_data: pd.DataFrame
 
 
 class AnalyticsService:
@@ -99,6 +102,53 @@ class AnalyticsService:
         probability = 100.0 - (pressure * 12.0 + wicket_penalty)
         return max(0.0, min(100.0, round(probability, 2)))
 
+    # ------------------------------------------------------------------
+    # Chart-ready dataset builders
+    # ------------------------------------------------------------------
+
+    def worm_data(self, ball_frame: pd.DataFrame) -> pd.DataFrame:
+        """Cumulative score per ball, grouped by innings number.
+
+        Returns columns: innings_number, ball_index, cumulative_runs.
+        Suitable for a multi-series line chart (worm graph).
+        """
+
+        if ball_frame.empty:
+            return pd.DataFrame(columns=["innings_number", "ball_index", "cumulative_runs"])
+
+        frames: list[pd.DataFrame] = []
+        for innings_num, group in ball_frame.groupby("innings_number", sort=True):
+            group = group.sort_values("sequence_number").reset_index(drop=True)
+            group = group.copy()
+            group["ball_index"] = group.index + 1
+            group["cumulative_runs"] = group["runs_scored"].cumsum()
+            frames.append(group[["innings_number", "ball_index", "cumulative_runs"]])
+        return pd.concat(frames, ignore_index=True)
+
+    def manhattan_data(self, over_summary: pd.DataFrame) -> pd.DataFrame:
+        """Runs and wickets per over, ready for a bar/column chart.
+
+        Returns columns: over_label, runs, wickets.
+        """
+
+        if over_summary.empty:
+            return pd.DataFrame(columns=["over_label", "runs", "wickets"])
+        result = over_summary[["over_number", "runs", "wickets"]].copy()
+        result["over_label"] = (result["over_number"] + 1).astype(str)
+        return result[["over_label", "runs", "wickets"]]
+
+    def run_rate_data(self, over_summary: pd.DataFrame) -> pd.DataFrame:
+        """Run rate per over for a line chart overlay.
+
+        Returns columns: over_label, run_rate.
+        """
+
+        if over_summary.empty:
+            return pd.DataFrame(columns=["over_label", "run_rate"])
+        result = over_summary[["over_number", "run_rate"]].copy()
+        result["over_label"] = (result["over_number"] + 1).astype(str)
+        return result[["over_label", "run_rate"]]
+
     def build_bundle(self, snapshot: dict[str, Any]) -> AnalyticsBundle:
         """Return the full analytics bundle for a snapshot."""
 
@@ -106,9 +156,15 @@ class AnalyticsService:
         over_summary = self.over_by_over_summary(ball_frame)
         innings_summary = self.innings_summary(snapshot, ball_frame)
         win_probability = self.estimate_win_probability(snapshot)
+        worm = self.worm_data(ball_frame)
+        manhattan = self.manhattan_data(over_summary)
+        run_rate = self.run_rate_data(over_summary)
         return AnalyticsBundle(
             ball_frame=ball_frame,
             over_summary=over_summary,
             innings_summary=innings_summary,
             win_probability=win_probability,
+            worm_data=worm,
+            manhattan_data=manhattan,
+            run_rate_data=run_rate,
         )

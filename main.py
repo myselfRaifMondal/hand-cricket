@@ -7,6 +7,7 @@ import sys
 from PySide6.QtWidgets import QApplication
 
 from controllers.match_controller import MatchController
+from controllers.player_controller import PlayerController
 from database.db import initialize_database
 from ui.main_window import MainWindow
 from utils.helpers import ensure_runtime_directories, load_settings, safe_read_text
@@ -25,8 +26,9 @@ def main() -> int:
     app.setApplicationName(settings.application_name)
     app.setStyleSheet(safe_read_text(settings.theme_path))
 
-    match_controller = MatchController()
-    window = MainWindow(match_controller)
+    match_controller = MatchController(settings=settings)
+    player_controller = PlayerController(settings)
+    window = MainWindow(match_controller, player_controller=player_controller)
     window.show()
 
     logger.info("Application started successfully")

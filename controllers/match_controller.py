@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+from typing import Optional
+
 from PySide6.QtCore import QObject, Signal
 
 from services.match_engine import MatchConfig, MatchEngine, MatchState, TeamConfig
 from services.scoring_service import ScoringService
 from utils.constants import AnimationEvent
+from utils.helpers import AppSettings
 
 
 class MatchController(QObject):
@@ -17,9 +20,9 @@ class MatchController(QObject):
     error_changed = Signal(str)
     activity_logged = Signal(str)
 
-    def __init__(self) -> None:
+    def __init__(self, settings: Optional[AppSettings] = None) -> None:
         super().__init__()
-        self.service = ScoringService(MatchEngine())
+        self.service = ScoringService(MatchEngine(), settings=settings)
         self.team_name_by_id: dict[int, str] = {}
         self.create_demo_match()
 
