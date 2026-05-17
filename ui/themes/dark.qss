@@ -1,0 +1,118 @@
+QMainWindow {
+    background: #07111f;
+}
+
+QWidget {
+    background-color: #07111f;
+    color: #e5edf7;
+    font-family: "Avenir Next", "Segoe UI", sans-serif;
+    font-size: 14px;
+}
+
+#sidebar {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
+        stop:0 #09172a, stop:1 #0f243d);
+    border-right: 1px solid #163050;
+    padding: 16px 8px;
+}
+
+#sidebar::item {
+    background: transparent;
+    border-radius: 14px;
+    margin: 6px 10px;
+    min-height: 50px;
+}
+
+#sidebar::item:selected {
+    background: #15345a;
+    color: #f8fafc;
+}
+
+QPushButton {
+    background: #12263f;
+    border: 1px solid #234264;
+    border-radius: 14px;
+    padding: 12px 18px;
+    font-weight: 600;
+}
+
+QPushButton:hover {
+    background: #1d3f68;
+}
+
+QPushButton:checked {
+    background: #16a34a;
+    border-color: #22c55e;
+}
+
+#screenTitle {
+    font-size: 30px;
+    font-weight: 800;
+}
+
+#screenSubtitle {
+    color: #99abc2;
+    font-size: 15px;
+}
+
+#sectionLabel {
+    font-size: 16px;
+    font-weight: 700;
+    color: #cdd8e6;
+}
+
+#highlightBadge {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+        stop:0 #f97316, stop:1 #ef4444);
+    border-radius: 18px;
+    padding: 12px 18px;
+    font-size: 20px;
+    font-weight: 800;
+    color: white;
+}
+
+#historyPanel,
+#activityList,
+QTableWidget,
+QTextEdit {
+    background: #0d1d31;
+    border: 1px solid #18314f;
+    border-radius: 18px;
+    padding: 12px;
+}
+
+#statCard-score,
+#statCard-accent,
+#statCard-muted,
+#statCard-default {
+    border-radius: 22px;
+    border: 1px solid #19324d;
+}
+
+#statCard-score {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #0f766e, stop:1 #155e75);
+}
+
+#statCard-accent {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+        stop:0 #1d4ed8, stop:1 #0f766e);
+}
+
+#statCard-muted,
+#statCard-default {
+    background: #0d1d31;
+}
+
+#statCardTitle {
+    color: #a5b5c9;
+    text-transform: uppercase;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+#statCardValue {
+    color: white;
+    font-size: 30px;
+    font-weight: 800;
+}

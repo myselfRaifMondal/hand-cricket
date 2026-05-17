@@ -1,0 +1,11 @@
+{
+  "application_name": "Hand Cricket Match Management",
+  "database_path": "data/hand_cricket.sqlite3",
+  "log_path": "logs/application.log",
+  "analytics_cache_path": "data/cache",
+  "theme_path": "ui/themes/dark.qss",
+  "sqlalchemy_echo": false,
+  "default_overs": 5,
+  "default_innings": 2,
+  "enable_super_over": true
+}
