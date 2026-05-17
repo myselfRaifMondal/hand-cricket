@@ -4,8 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QHBoxLayout, QListWidget, QListWidgetItem, QMainWindow, QStackedWidget, QWidget
+from PySide6.QtCore import QTimer, Qt
+from PySide6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QListWidget,
+    QListWidgetItem,
+    QMainWindow,
+    QMessageBox,
+    QStackedWidget,
+    QWidget,
+)
 
 from controllers.analytics_controller import AnalyticsController
 from controllers.match_controller import MatchController
@@ -13,6 +22,7 @@ from ui.analytics_screen import AnalyticsScreen
 from ui.dashboard import DashboardScreen
 from ui.match_screen import MatchScreen
 from ui.player_management import PlayerManagementScreen
+from ui.dialogs.match_setup_dialog import MatchSetupDialog
 
 if TYPE_CHECKING:
     from controllers.player_controller import PlayerController
@@ -65,6 +75,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(self.sidebar)
         layout.addWidget(self.content_stack, 1)
         self.setCentralWidget(central_widget)
+        QTimer.singleShot(0, self.launch_match_setup)
 
     _ANALYTICS_INDEX = 2
 
@@ -77,3 +88,20 @@ class MainWindow(QMainWindow):
                 self.analytics_screen.update_charts(chart_data)
             except Exception:  # noqa: BLE001
                 pass
+
+    def launch_match_setup(self) -> None:
+        """Open mandatory pre-match setup and configure the live controller."""
+
+        dialog = MatchSetupDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            QMessageBox.information(
+                self,
+                "Setup Required",
+                "Match setup was cancelled. You can start setup from Live Match controls by restarting the app.",
+            )
+            return
+        try:
+            self.match_controller.configure_match(dialog.payload())
+            self.match_controller.activity_logged.emit("Setup completed: teams, toss, lineup, and opening players set.")
+        except ValueError as error:
+            QMessageBox.critical(self, "Setup Error", str(error))

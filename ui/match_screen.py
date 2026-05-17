@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PySide6.QtCore import QEasingCurve, Property, QPropertyAnimation, QTimer
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QHBoxLayout, QInputDialog, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
 from controllers.match_controller import MatchController
 from ui.widgets.number_pad import NumberPad
@@ -27,6 +27,8 @@ class MatchScreen(QWidget):
         title.setObjectName("screenTitle")
         self.summary_label = QLabel("Ready for kickoff")
         self.summary_label.setObjectName("screenSubtitle")
+        self.players_label = QLabel("Striker: - | Non-striker: - | Bowler: -")
+        self.players_label.setObjectName("screenSubtitle")
 
         scoreboard = QHBoxLayout()
         scoreboard.setSpacing(12)
@@ -74,6 +76,7 @@ class MatchScreen(QWidget):
 
         root_layout.addWidget(title)
         root_layout.addWidget(self.summary_label)
+        root_layout.addWidget(self.players_label)
         root_layout.addLayout(scoreboard)
         root_layout.addLayout(pads_layout)
         root_layout.addLayout(controls_layout)
@@ -102,8 +105,18 @@ class MatchScreen(QWidget):
             f"{snapshot['batting_team_name']} batting against {snapshot['bowling_team_name']} | "
             f"Status: {snapshot['status'].upper()}"
         )
+        self.players_label.setText(
+            f"Striker: {snapshot.get('current_striker', '-')} | "
+            f"Non-striker: {snapshot.get('current_non_striker', '-')} | "
+            f"Bowler: {snapshot.get('current_bowler', '-')}"
+        )
         if snapshot.get("result_text"):
             self.append_history(snapshot["result_text"])
+
+        if snapshot.get("status") == "live" and snapshot.get("needs_next_batter"):
+            self._prompt_next_batter()
+        if snapshot.get("status") == "live" and snapshot.get("needs_next_bowler"):
+            self._prompt_next_bowler()
 
     def append_history(self, message: str) -> None:
         self.history_panel.insertPlainText(f"{message}\n")
@@ -125,6 +138,36 @@ class MatchScreen(QWidget):
             self.controller.submit_ball(self.batting_pad.selected_number, self.bowling_pad.selected_number)
             self.batting_pad.clear_selection()
             self.bowling_pad.clear_selection()
+
+    def _prompt_next_batter(self) -> None:
+        options = self.controller.next_batter_options()
+        if not options:
+            self.append_history("No available next batter in lineup.")
+            return
+        choice, ok = QInputDialog.getItem(
+            self,
+            "Next Batter",
+            "Select next batter:",
+            options,
+            editable=False,
+        )
+        if ok and choice:
+            self.controller.select_next_batter(choice)
+
+    def _prompt_next_bowler(self) -> None:
+        options = self.controller.next_bowler_options()
+        if not options:
+            self.append_history("No available bowler in lineup.")
+            return
+        choice, ok = QInputDialog.getItem(
+            self,
+            "Next Bowler",
+            "Select bowler for the next over:",
+            options,
+            editable=False,
+        )
+        if ok and choice:
+            self.controller.select_next_bowler(choice)
 
     def get_pulse_opacity(self) -> float:
         return self.highlight_badge.windowOpacity()
