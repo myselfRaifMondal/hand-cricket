@@ -207,7 +207,7 @@ class MatchSetupDialog(QDialog):
         if home == away:
             QMessageBox.warning(self, "Validation", "Team names must be different.")
             return
-        required_players = self.wickets_spin.value() + 1
+        required_players = self.wickets_spin.value()
         if len(home_order) < required_players or len(away_order) < required_players:
             QMessageBox.warning(
                 self,

@@ -47,7 +47,7 @@ class MatchController(QObject):
         opening_bowler: str
 
     def _validate_setup_payload(self, payload: SetupPayload, batting_first_team_id: int) -> None:
-        required_players = payload.max_wickets + 1
+        required_players = payload.max_wickets
         if len(payload.home_batting_order) < required_players:
             raise ValueError(
                 f"Home lineup must include at least {required_players} players for {payload.max_wickets} wickets."
