@@ -81,3 +81,28 @@ def test_tie_triggers_super_over_when_enabled() -> None:
     assert len(state.innings) == 4
     assert state.current_innings().is_super_over is True
     assert state.status == MatchStatus.LIVE
+
+
+def test_complete_current_innings_advances_to_next_innings() -> None:
+    engine = MatchEngine()
+    state = engine.create_match(build_config())
+    engine.start_match(state)
+    engine.record_ball(state, 4, 1)
+
+    engine.complete_current_innings(state)
+
+    assert state.current_innings_index == 1
+    assert state.current_innings().target == 5
+    assert state.status == MatchStatus.LIVE
+
+
+def test_complete_current_innings_requires_live_match() -> None:
+    engine = MatchEngine()
+    state = engine.create_match(build_config())
+
+    try:
+        engine.complete_current_innings(state)
+    except ValueError as error:
+        assert "Only a live match innings can be completed." in str(error)
+    else:
+        raise AssertionError("Expected ValueError for non-live innings completion")

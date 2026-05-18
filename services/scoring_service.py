@@ -79,6 +79,33 @@ class ScoringService:
             self._repo.delete_all_balls(innings_id)
         return state
 
+    def complete_current_innings(self) -> dict[str, Any]:
+        state = self._require_state()
+        innings_number = state.current_innings().innings_number
+        innings_before_completed = state.current_innings().completed
+
+        self.engine.complete_current_innings(state)
+        snapshot = self.engine.get_snapshot(state)
+
+        if self._repo is not None and self._db_match_id is not None:
+            innings = state.innings[innings_number - 1]
+            innings_id = self._db_innings_id_map.get(innings_number)
+            if not innings_before_completed and innings_id is not None:
+                self._repo.complete_innings(
+                    innings_id=innings_id,
+                    runs=innings.runs,
+                    wickets=innings.wickets,
+                    balls_bowled=innings.balls_bowled,
+                )
+            if snapshot.get("status") == "completed":
+                self._repo.complete_match(
+                    match_id=self._db_match_id,
+                    winner_team_id=self._db_team_id_map.get(state.winner_team_id or 0),
+                    result_summary=state.result_text,
+                )
+
+        return {"snapshot": snapshot}
+
     def record_ball(
         self,
         batting_input: int,

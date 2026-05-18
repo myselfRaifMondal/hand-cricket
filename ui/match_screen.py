@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from PySide6.QtCore import QEasingCurve, Property, QPropertyAnimation, QTimer
+from PySide6.QtCore import QEasingCurve, Property, QPropertyAnimation, QTimer, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QHBoxLayout, QInputDialog, QLabel, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
@@ -13,6 +13,8 @@ from ui.widgets.stat_card import StatCard
 
 class MatchScreen(QWidget):
     """Live scoring surface for ball-by-ball administration."""
+
+    setup_requested = Signal()
 
     def __init__(self, controller: MatchController) -> None:
         super().__init__()
@@ -27,7 +29,7 @@ class MatchScreen(QWidget):
         title.setObjectName("screenTitle")
         self.summary_label = QLabel("Ready for kickoff")
         self.summary_label.setObjectName("screenSubtitle")
-        self.players_label = QLabel("Striker: - | Non-striker: - | Bowler: -")
+        self.players_label = QLabel("Batter: - | Bowler: -")
         self.players_label.setObjectName("screenSubtitle")
 
         scoreboard = QHBoxLayout()
@@ -65,7 +67,15 @@ class MatchScreen(QWidget):
         self.resume_button = QPushButton("Resume")
         self.undo_button = QPushButton("Undo Ball")
         self.reset_button = QPushButton("Reset Innings")
-        for button in [self.start_button, self.pause_button, self.resume_button, self.undo_button, self.reset_button]:
+        self.setup_button = QPushButton("Setup")
+        for button in [
+            self.start_button,
+            self.pause_button,
+            self.resume_button,
+            self.undo_button,
+            self.reset_button,
+            self.setup_button,
+        ]:
             controls_layout.addWidget(button)
 
         self.highlight_badge = QLabel("LIVE")
@@ -90,6 +100,8 @@ class MatchScreen(QWidget):
         self.resume_button.clicked.connect(self.controller.resume_match)
         self.undo_button.clicked.connect(self.controller.undo_last_ball)
         self.reset_button.clicked.connect(self.controller.reset_current_innings)
+        self.setup_button.clicked.connect(self.setup_requested.emit)
+        self._set_setup_warning(not self.controller.is_configured())
 
         self.controller.state_changed.connect(self.update_snapshot)
         self.controller.highlight_changed.connect(self.show_highlight)
@@ -97,6 +109,7 @@ class MatchScreen(QWidget):
         self.controller.error_changed.connect(self.append_history)
 
     def update_snapshot(self, snapshot: dict) -> None:
+        self._set_setup_warning(not self.controller.is_configured())
         self.score_card.set_value(f"{snapshot['score']}/{snapshot['wickets']}")
         self.overs_card.set_value(snapshot["overs"])
         self.target_card.set_value(str(snapshot["target"] or "-"))
@@ -106,8 +119,7 @@ class MatchScreen(QWidget):
             f"Status: {snapshot['status'].upper()}"
         )
         self.players_label.setText(
-            f"Striker: {snapshot.get('current_striker', '-')} | "
-            f"Non-striker: {snapshot.get('current_non_striker', '-')} | "
+            f"Batter: {snapshot.get('current_striker', '-')} | "
             f"Bowler: {snapshot.get('current_bowler', '-')}"
         )
         if snapshot.get("result_text"):
@@ -117,6 +129,25 @@ class MatchScreen(QWidget):
             self._prompt_next_batter()
         if snapshot.get("status") == "live" and snapshot.get("needs_next_bowler"):
             self._prompt_next_bowler()
+
+    def _set_setup_warning(self, enabled: bool) -> None:
+        """Highlight the Setup button when match setup is still required."""
+
+        if enabled:
+            self.setup_button.setText("Setup (!)")
+            self.setup_button.setToolTip("Match setup is required before starting.")
+            self.setup_button.setStyleSheet(
+                "QPushButton {"
+                " background-color: #7f1d1d;"
+                " color: #fee2e2;"
+                " border: 1px solid #ef4444;"
+                " font-weight: 700;"
+                "}"
+            )
+        else:
+            self.setup_button.setText("Setup")
+            self.setup_button.setToolTip("Open match setup.")
+            self.setup_button.setStyleSheet("")
 
     def append_history(self, message: str) -> None:
         self.history_panel.insertPlainText(f"{message}\n")
@@ -143,6 +174,7 @@ class MatchScreen(QWidget):
         options = self.controller.next_batter_options()
         if not options:
             self.append_history("No available next batter in lineup.")
+            self.append_history("Innings will be closed automatically.")
             return
         choice, ok = QInputDialog.getItem(
             self,

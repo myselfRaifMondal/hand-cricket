@@ -139,6 +139,18 @@ class MatchEngine:
             state.result_text = ""
         return state
 
+    def complete_current_innings(self, state: MatchState) -> MatchState:
+        """Mark the current innings complete and progress match state."""
+
+        if state.status != MatchStatus.LIVE:
+            raise ValueError("Only a live match innings can be completed.")
+        innings = state.current_innings()
+        if innings.completed:
+            raise ValueError("The current innings is already completed.")
+        innings.completed = True
+        self._advance_match(state)
+        return state
+
     def record_ball(
         self,
         state: MatchState,

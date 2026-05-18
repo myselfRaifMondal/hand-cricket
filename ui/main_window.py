@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from typing import TYPE_CHECKING
 
 from PySide6.QtCore import QTimer, Qt
@@ -22,6 +23,7 @@ from ui.analytics_screen import AnalyticsScreen
 from ui.dashboard import DashboardScreen
 from ui.match_screen import MatchScreen
 from ui.player_management import PlayerManagementScreen
+from ui.test_hand_cricket_screen import TestHandCricketScreen
 from ui.dialogs.match_setup_dialog import MatchSetupDialog
 
 if TYPE_CHECKING:
@@ -46,9 +48,14 @@ class MainWindow(QMainWindow):
         self.match_screen = MatchScreen(match_controller)
         self.analytics_screen = AnalyticsScreen()
         self.player_management_screen = PlayerManagementScreen(player_controller)
+        self.test_hand_cricket_screen = TestHandCricketScreen()
 
         self.match_controller.state_changed.connect(self.dashboard_screen.update_snapshot)
         self.match_controller.activity_logged.connect(self.dashboard_screen.add_activity)
+        self.match_screen.setup_requested.connect(lambda: self.launch_match_setup(from_user=True))
+        self.test_hand_cricket_screen.setup_preset_requested.connect(
+            lambda preset: self.launch_match_setup(from_user=True, presets=preset)
+        )
 
         central_widget = QWidget()
         layout = QHBoxLayout(central_widget)
@@ -58,7 +65,7 @@ class MainWindow(QMainWindow):
         self.sidebar = QListWidget()
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setFixedWidth(240)
-        for label in ["Dashboard", "Live Match", "Analytics", "Players"]:
+        for label in ["Dashboard", "Live Match", "Analytics", "Players", "Test Hand Cricket"]:
             item = QListWidgetItem(label)
             item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self.sidebar.addItem(item)
@@ -69,6 +76,7 @@ class MainWindow(QMainWindow):
         self.content_stack.addWidget(self.match_screen)
         self.content_stack.addWidget(self.analytics_screen)
         self.content_stack.addWidget(self.player_management_screen)
+        self.content_stack.addWidget(self.test_hand_cricket_screen)
 
         self.sidebar.currentRowChanged.connect(self._on_nav_change)
 
@@ -89,16 +97,28 @@ class MainWindow(QMainWindow):
             except Exception:  # noqa: BLE001
                 pass
 
-    def launch_match_setup(self) -> None:
+    def launch_match_setup(self, from_user: bool = False, presets: dict[str, Any] | None = None) -> None:
         """Open mandatory pre-match setup and configure the live controller."""
 
-        dialog = MatchSetupDialog(self)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            QMessageBox.information(
+        if from_user and self.match_controller.is_configured():
+            choice = QMessageBox.question(
                 self,
-                "Setup Required",
-                "Match setup was cancelled. You can start setup from Live Match controls by restarting the app.",
+                "Replace Current Match?",
+                "Starting setup now will replace the current match configuration. Continue?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
             )
+            if choice != QMessageBox.StandardButton.Yes:
+                return
+
+        dialog = MatchSetupDialog(self, presets=presets)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            if not from_user:
+                QMessageBox.information(
+                    self,
+                    "Setup Required",
+                    "Match setup was cancelled. You can start setup from the Live Match Setup button.",
+                )
             return
         try:
             self.match_controller.configure_match(dialog.payload())
